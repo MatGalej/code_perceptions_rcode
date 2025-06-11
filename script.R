@@ -31,7 +31,7 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   )
 
 # ======== Survey Completion Time (minutes) ========
-
+summary(as.numeric(as.character(filteredData$Duration..in.seconds)))
 
 # Overall Quality
 likert_levels <- c("Very low quality", "Low quality", "Somewhat low quality", 
