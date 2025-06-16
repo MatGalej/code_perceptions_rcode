@@ -15,8 +15,8 @@ filteredData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' &
                              rawData$AttentionCheck_ctrl == 
                              'This code snippet is written in C.')
                           | (rawData$condition == 'experimental' 
-                          & rawData$AttentionCheck_exp == 
-                          'This code snippet was generated using AI.')))
+                             & rawData$AttentionCheck_exp == 
+                               'This code snippet was generated using AI.')))
 
 # Add a row to manually track if security bug was detected
 filteredData$noticed_security_bug <- NA
@@ -26,7 +26,7 @@ total_n <- as.numeric(nrow(rawData))
 filtered_n <- as.numeric(nrow(filteredData))
 
 count_df <- data.frame(Group = c("Total", "Filtered"), Count
-                         = c(total_n, filtered_n))
+                       = c(total_n, filtered_n))
 
 ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_bar(stat = "identity") +
@@ -41,8 +41,8 @@ summary(as.numeric(as.character(filteredData$Duration..in.seconds)))
 
 # Overall Quality 
 quality_levels <- c("Very low quality", "Low quality", "Somewhat low quality", 
-                   "Neither high nor low quality", "Somewhat high quality", 
-                   "High quality", "Very high quality")
+                    "Neither high nor low quality", "Somewhat high quality", 
+                    "High quality", "Very high quality")
 filteredData$Rate_Overall_Quality_Numeric <- as.numeric(factor(
   filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE))
 
@@ -77,7 +77,7 @@ for (i in 1:6) {
     filteredData[[current_ai_col]], levels=likert_levels, ordered = TRUE))
 }
 
-# Spearmans RHO for credit hours and CS courses
+# Spearman correlation testing for credit hours and CS courses
 filteredData$num_classes <- as.numeric(lengths(strsplit(
   filteredData$Courses, ",")))
 
@@ -89,3 +89,25 @@ filteredData$CreditHours_catagory <- as.numeric(factor(
 
 cor.test(filteredData$CreditHours_catagory, filteredData$num_classes,
          method="spearman", exact=FALSE)
+
+# Add in variables for core_class completion and security
+cs_core <- c("CS 250","CS 251","CS 252")
+cs_security <- c("CS 354","CS 355","CS 426")
+
+# Check if a participant has completed ALL core classes
+filteredData$completed_core <- sapply(filteredData$Courses, function(x) {
+ if (is.na(x)) {
+   return(FALSE)
+ }
+ courses <- trimws(unlist(strsplit(x, ",")))
+ all(cs_core %in% courses)
+})
+
+# Checks if a participant has completed AT LEAST ONE security course
+filteredData$taken_security <- sapply(filteredData$Courses, function(x) {
+  if (is.na(x)) {
+    return(FALSE)
+  }
+  courses <- trimws(unlist(strsplit(x, ",")))
+  any(cs_security %in% courses)
+})
