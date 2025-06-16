@@ -1,11 +1,12 @@
-# ======== Init ggplot2 for visuals ========
+# Lib setup  
 library(ggplot2)
 library(dplyr)
 
-# ======== Load in fake results for testing ========
+# Load in fake results for testing, filter out unneeded info
 rawData <- read.csv("FAKE_DATA.csv", header = T, sep=",")
+rawData <- rawData[3:nrow(rawData), 5:ncol(rawData)] 
 
-# ======== Filter out non complete results ========
+# Filter out non complete results
 filteredData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' & 
                          rawData$Finished == 'True' &
                          ((rawData$condition == 'control' & 
@@ -15,7 +16,10 @@ filteredData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' &
                           & rawData$AttentionCheck_exp == 
                           'This code snippet was generated using AI.')))
 
-# ======== How many completed the survey ========
+# Add a row to manually track if security bug was detected
+filteredData$noticed_security_bug <- NA
+
+# How many completed the survey
 total_n <- as.numeric(nrow(rawData))
 filtered_n <- as.numeric(nrow(filteredData))
 
@@ -28,16 +32,16 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
     title = "Number of Observations: Total vs Filtered",
     x = "",
     y = "Count"
-  )
+  ) + theme_bw()
 
-# ======== Survey Completion Time (minutes) ========
+# Survey Completion Time (minutes)
 summary(as.numeric(as.character(filteredData$Duration..in.seconds)))
 
-# Overall Quality
+# Overall Quality 
 likert_levels <- c("Very low quality", "Low quality", "Somewhat low quality", 
                    "Neither high nor low quality", "Somewhat high quality", 
                    "High quality", "Very high quality")
-filteredData$RateOverallQualityNumeric <- as.numeric(factor(
+filteredData$Rate_Overall_Quality_Numeric <- as.numeric(factor(
   filteredData$RateOverallQuality, levels=likert_levels, ordered = TRUE))
 
 ggplot(filteredData, aes(x = factor(RateOverallQualityNumeric))) +
@@ -48,4 +52,5 @@ ggplot(filteredData, aes(x = factor(RateOverallQualityNumeric))) +
     x = "Rating (1 = Extremely Bad, 7 = Extremely Good)",
     y = "Count"
   ) +
-  theme_minimal()
+  theme_bw()
+
