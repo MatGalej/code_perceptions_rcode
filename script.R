@@ -111,3 +111,9 @@ filteredData$taken_security <- sapply(filteredData$Courses, function(x) {
   courses <- trimws(unlist(strsplit(x, ",")))
   any(cs_security %in% courses)
 })
+
+# trust_in_AI likert calculations
+ai_questions <- c("AI_Likert_numeric_1", "AI_Likert_numeric_2",
+                  "AI_Likert_numeric_3", "AI_Likert_numeric_4",
+                  "AI_Likert_numeric_5", "AI_Likert_numeric_6")
+filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_questions])
