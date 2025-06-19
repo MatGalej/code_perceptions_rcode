@@ -1,7 +1,7 @@
 # Lib setup  
 library(ggplot2)
 library(dplyr)
-library()
+library(ordinal)
 
 # Load in fake results for testing, filter out unneeded info, replace -99 w NA
 rawData <- read.csv("FAKE_DATA.csv", header = T, sep=",")
@@ -123,7 +123,6 @@ ai_questions <- c("AI_Likert_numeric_1", "AI_Likert_numeric_2",
                   "AI_Likert_numeric_5", "AI_Likert_numeric_6")
 filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_questions])
 
-
 # GLM model for the relationship:
 # noticed_security_bug ~ condition + condition*trust_in_AI + credithours + 
 # completed_CS_core + security_class
@@ -135,3 +134,27 @@ summary(bug_detected)
 
 # CLM Models for various quality perceptions, including from overall, likert, 
 # etc.
+
+# TODO: Use different model? This error was obtained:
+# (1) Hessian is numerically singular: parameters are not uniquely determined 
+# In addition: Absolute convergence criterion was met, but relative criterion\
+# was not met
+
+qual_perception_overall <- clm(factor(Rate_Overall_Quality_Numeric) ~ condition +
+                                 (condition*avg_ai_trust) + CreditHours_catagory
+                               + completed_core + taken_security,
+                               data=filteredData)
+summary(qual_perception_overall)
+
+
+likert_questions <- c("Likert_numeric_1", "Likert_numeric_2", "Likert_numeric_3",
+                  "Likert_numeric_4", "Likert_numeric_5", "Likert_numeric_6",
+                  "Likert_numeric_7", "Likert_numeric_8", "Likert_numeric_9",
+                  "Likert_numeric_10")
+filteredData$likert_avg <- rowMeans(filteredData[,likert_questions])
+
+qual_perception_likert <- clm(factor(likert_avg) ~ condition +
+                                (condition*avg_ai_trust) + CreditHours_catagory
+                              + completed_core + taken_security,
+                              data=filteredData)
+summary(qual_perception_likert)
