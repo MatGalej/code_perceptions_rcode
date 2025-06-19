@@ -1,6 +1,7 @@
 # Lib setup  
 library(ggplot2)
 library(dplyr)
+library()
 
 # Load in fake results for testing, filter out unneeded info, replace -99 w NA
 rawData <- read.csv("FAKE_DATA.csv", header = T, sep=",")
@@ -20,6 +21,10 @@ filteredData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' &
 
 # Add a row to manually track if security bug was detected
 filteredData$noticed_security_bug <- NA
+
+# TODO: FOR GLM TESTING WITH RANDOM DATA, REMOVE LATER
+filteredData$noticed_security_bug <- sample(
+  c(TRUE, FALSE), size = nrow(filteredData), replace = TRUE)
 
 # How many completed the survey
 total_n <- as.numeric(nrow(rawData))
@@ -117,3 +122,16 @@ ai_questions <- c("AI_Likert_numeric_1", "AI_Likert_numeric_2",
                   "AI_Likert_numeric_3", "AI_Likert_numeric_4",
                   "AI_Likert_numeric_5", "AI_Likert_numeric_6")
 filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_questions])
+
+
+# GLM model for the relationship:
+# noticed_security_bug ~ condition + condition*trust_in_AI + credithours + 
+# completed_CS_core + security_class
+bug_detected <- glm(noticed_security_bug ~ condition +
+                           (condition*avg_ai_trust) + CreditHours_catagory
+                         + completed_core + taken_security, data=filteredData,
+                         family = gaussian())
+summary(bug_detected)
+
+# CLM Models for various quality perceptions, including from overall, likert, 
+# etc.
