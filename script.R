@@ -48,8 +48,8 @@ summary(as.numeric(as.character(filteredData$Duration..in.seconds)))
 quality_levels <- c("Very low quality", "Low quality", "Somewhat low quality", 
                     "Neither high nor low quality", "Somewhat high quality", 
                     "High quality", "Very high quality")
-filteredData$Rate_Overall_Quality_Numeric <- as.numeric(factor(
-  filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE))
+filteredData$Rate_Overall_Quality_Numeric <- factor(
+  filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE)
 
 ggplot(filteredData, aes(x = factor(Rate_Overall_Quality_Numeric))) +
   geom_bar(fill = "steelblue") +
@@ -101,11 +101,11 @@ cs_security <- c("CS 354","CS 355","CS 426")
 
 # Check if a participant has completed ALL core classes
 filteredData$completed_core <- sapply(filteredData$Courses, function(x) {
- if (is.na(x)) {
-   return(FALSE)
- }
- courses <- trimws(unlist(strsplit(x, ",")))
- all(cs_core %in% courses)
+  if (is.na(x)) {
+    return(FALSE)
+  }
+  courses <- trimws(unlist(strsplit(x, ",")))
+  all(cs_core %in% courses)
 })
 
 # Checks if a participant has completed AT LEAST ONE security course
@@ -127,9 +127,9 @@ filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_questions])
 # noticed_security_bug ~ condition + condition*trust_in_AI + credithours + 
 # completed_CS_core + security_class
 bug_detected <- glm(noticed_security_bug ~ condition +
-                           (condition*avg_ai_trust) + CreditHours_catagory
-                         + completed_core + taken_security, data=filteredData,
-                         family = gaussian())
+                      (condition*avg_ai_trust) + CreditHours_catagory
+                    + completed_core + taken_security, data=filteredData,
+                    family = gaussian())
 summary(bug_detected)
 
 # CLM Models for various quality perceptions, including from overall, likert, 
@@ -139,22 +139,14 @@ summary(bug_detected)
 # (1) Hessian is numerically singular: parameters are not uniquely determined 
 # In addition: Absolute convergence criterion was met, but relative criterion\
 # was not met
+# TODO: Make each of these seperate clm models for each likert, instead of an 
+# avgf
 
-qual_perception_overall <- clm(factor(Rate_Overall_Quality_Numeric) ~ condition +
-                                 (condition*avg_ai_trust) + CreditHours_catagory
-                               + completed_core + taken_security,
+qual_perception_overall <- clm(Rate_Overall_Quality_Numeric ~ condition,
                                data=filteredData)
 summary(qual_perception_overall)
 
-
-likert_questions <- c("Likert_numeric_1", "Likert_numeric_2", "Likert_numeric_3",
-                  "Likert_numeric_4", "Likert_numeric_5", "Likert_numeric_6",
-                  "Likert_numeric_7", "Likert_numeric_8", "Likert_numeric_9",
-                  "Likert_numeric_10")
-filteredData$likert_avg <- rowMeans(filteredData[,likert_questions])
-
-qual_perception_likert <- clm(factor(likert_avg) ~ condition +
-                                (condition*avg_ai_trust) + CreditHours_catagory
-                              + completed_core + taken_security,
+qual_perception_likert <- clm(factor(Likert_numeric_1) ~ condition + condition +
+                                (condition*avg_ai_trust),
                               data=filteredData)
 summary(qual_perception_likert)
