@@ -2,9 +2,13 @@
 library(ggplot2)
 library(dplyr)
 library(ordinal)
+library(tidytext)
+
+# Get data file from the directory
+csv <- list.files(pattern = "*.csv")
 
 # Load in fake results for testing, filter out unneeded info, replace -99 w NA
-rawData <- read.csv("FAKE_DATA.csv", header = T, sep=",")
+rawData <- read.csv(csv, header = T, sep=",")
 rawData <- rawData[3:nrow(rawData), 5:ncol(rawData)] 
 rawData <- rawData %>%
   mutate(across(everything(), ~ ifelse(. == -99, NA, .)))
@@ -22,9 +26,46 @@ filteredData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' &
 # Add a row to manually track if security bug was detected
 filteredData$noticed_security_bug <- NA
 
+# Add a flag for potential bot responses (If captcha score is below 4)
+filteredData <- filteredData %>% mutate(POTENTIAL_BOT = Q_RecaptchaScore < 0.4)
+
+# Histograms for both overall response time and response time for 
+# flagged responses
+
+filteredData$Duration..in.seconds. <- 
+  as.numeric(as.character(filteredData$Duration..in.seconds.))
+
+ggplot(filteredData, aes(x = Duration..in.seconds.)) +
+  geom_histogram(binwidth = 60, 
+                 fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = paste("Distribution of Survey Completion Time"),
+    x = "Completion Time (seconds)",
+    y = "Count"
+  ) +
+  theme_bw()
+
+botData <- filteredData %>%
+  filter(POTENTIAL_BOT == TRUE)
+
+# Plot histogram for potential bots only
+ggplot(botData, aes(x = Duration..in.seconds.)) +
+  geom_histogram(binwidth = 60,
+                 fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = paste("Distribution of Suspected Bot Completion Times"),
+    x = "Completion Time (seconds)",
+    y = "Count"
+  ) +
+  theme_bw()
+
+# For all conditions marked as POTENTIAL_BOT, analyze any common keywords
+
+
+
 # TODO: FOR GLM TESTING WITH RANDOM DATA, REMOVE LATER
-filteredData$noticed_security_bug <- sample(
-  c(TRUE, FALSE), size = nrow(filteredData), replace = TRUE)
+# filteredData$noticed_security_bug <- sample(
+#  c(TRUE, FALSE), size = nrow(filteredData), replace = TRUE)
 
 # How many completed the survey
 total_n <- as.numeric(nrow(rawData))
@@ -34,9 +75,9 @@ count_df <- data.frame(Group = c("Total", "Filtered"), Count
                        = c(total_n, filtered_n))
 
 ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
-  geom_bar(stat = "identity") +
+  geom_col() +
   labs(
-    title = "Number of Observations: Total vs Filtered",
+    title = "Number of Observations: Total vs Filtered (W/O Flags Filtered)",
     x = "",
     y = "Count"
   ) + theme_bw()
@@ -48,8 +89,8 @@ summary(as.numeric(as.character(filteredData$Duration..in.seconds)))
 quality_levels <- c("Very low quality", "Low quality", "Somewhat low quality", 
                     "Neither high nor low quality", "Somewhat high quality", 
                     "High quality", "Very high quality")
-filteredData$Rate_Overall_Quality_Numeric <- factor(
-  filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE)
+filteredData$Rate_Overall_Quality_Numeric <- as.numeric(factor(
+  filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE))
 
 ggplot(filteredData, aes(x = factor(Rate_Overall_Quality_Numeric))) +
   geom_bar(fill = "steelblue") +
@@ -139,14 +180,22 @@ summary(bug_detected)
 # (1) Hessian is numerically singular: parameters are not uniquely determined 
 # In addition: Absolute convergence criterion was met, but relative criterion\
 # was not met
-# TODO: Make each of these seperate clm models for each likert, instead of an 
-# avgf
 
-qual_perception_overall <- clm(Rate_Overall_Quality_Numeric ~ condition,
+qual_perception_overall <- clm(factor(Rate_Overall_Quality_Numeric) ~ condition +
+                                 (condition*avg_ai_trust) + CreditHours_catagory
+                               + completed_core + taken_security,
                                data=filteredData)
 summary(qual_perception_overall)
 
-qual_perception_likert <- clm(factor(Likert_numeric_1) ~ condition + condition +
-                                (condition*avg_ai_trust),
+
+likert_questions <- c("Likert_numeric_1", "Likert_numeric_2", "Likert_numeric_3",
+                      "Likert_numeric_4", "Likert_numeric_5", "Likert_numeric_6",
+                      "Likert_numeric_7", "Likert_numeric_8", "Likert_numeric_9",
+                      "Likert_numeric_10")
+filteredData$likert_avg <- rowMeans(filteredData[,likert_questions])
+
+qual_perception_likert <- clm(factor(likert_avg) ~ condition +
+                                (condition*avg_ai_trust) + CreditHours_catagory
+                              + completed_core + taken_security,
                               data=filteredData)
 summary(qual_perception_likert)
