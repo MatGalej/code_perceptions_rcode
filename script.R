@@ -1,20 +1,18 @@
-# Lib setup  
 library(ggplot2)
 library(dplyr)
 library(ordinal)
-library(tidytext)
+library(lubridate)
 
-# Get data file from the directory
-csv <- list.files(pattern = "*.csv")
+csv <- list.files(pattern = "RawData.csv")
 
-# Load in fake results for testing, filter out unneeded info, replace -99 w NA
+# Load in results, filter out unneeded info, replace -99 w NA
 rawData <- read.csv(csv, header = T, sep=",")
 rawData <- rawData[3:nrow(rawData), 5:ncol(rawData)] 
 rawData <- rawData %>%
   mutate(across(everything(), ~ ifelse(. == -99, NA, .)))
 
 # Filter out non complete results
-filteredData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' & 
+rawData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' & 
                          rawData$Finished == 'True' &
                          ((rawData$condition == 'control' & 
                              rawData$AttentionCheck_ctrl == 
@@ -24,31 +22,29 @@ filteredData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' &
                                'This code snippet was generated using AI.')))
 
 # Add a row to manually track if security bug was detected
-filteredData$noticed_security_bug <- NA
+rawData$noticed_security_bug <- NA
 
 # Add a flag for potential bot responses (If captcha score is below 4)
-filteredData <- filteredData %>% mutate(POTENTIAL_BOT = Q_RecaptchaScore < 0.4)
+rawData <- rawData %>% mutate(POTENTIAL_BOT = Q_RecaptchaScore < 0.4)
 
-# Histograms for both overall response time and response time for 
-# flagged responses
+# Histogram for overall response time (before bot filtering)
+rawData$Duration..in.seconds. <- 
+  as.numeric(as.character(rawData$Duration..in.seconds.))
 
-filteredData$Duration..in.seconds. <- 
-  as.numeric(as.character(filteredData$Duration..in.seconds.))
-
-ggplot(filteredData, aes(x = Duration..in.seconds.)) +
+ggplot(rawData, aes(x = Duration..in.seconds.)) +
   geom_histogram(binwidth = 60, 
                  fill = "steelblue", color = "black", alpha = 0.7) +
   labs(
-    title = paste("Distribution of Survey Completion Time"),
+    title = paste("Distribution of Survey Completion Time (Pre Filter)"),
     x = "Completion Time (seconds)",
     y = "Count"
   ) +
   theme_bw()
 
-botData <- filteredData %>%
+botData <- rawData %>%
   filter(POTENTIAL_BOT == TRUE)
 
-# Plot histogram for potential bots only
+# Plot histogram for potential bots only (before bot filtering)
 ggplot(botData, aes(x = Duration..in.seconds.)) +
   geom_histogram(binwidth = 60,
                  fill = "steelblue", color = "black", alpha = 0.7) +
@@ -59,25 +55,48 @@ ggplot(botData, aes(x = Duration..in.seconds.)) +
   ) +
   theme_bw()
 
-# For all conditions marked as POTENTIAL_BOT, analyze any common keywords
+# Due to high bot count after 2025-8-12, filter out all responses after that 
+# date
+filteredData <- rawData %>%
+  mutate(RecordedDate = ymd_hms(RecordedDate)) %>%
+  filter(as_date(RecordedDate) <= ymd("2025-08-12"))
 
 
+# Overwrite filtered Data with new CSV after manual security screening
+filteredData <- read.csv("filteredResponses.csv", header = T, sep=",")
 
-# TODO: FOR GLM TESTING WITH RANDOM DATA, REMOVE LATER
-# filteredData$noticed_security_bug <- sample(
-#  c(TRUE, FALSE), size = nrow(filteredData), replace = TRUE)
+# Redo survey time histogram AFTER filtering
+ggplot(filteredData, aes(x = Duration..in.seconds.)) +
+  geom_histogram(binwidth = 120, 
+                 fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = paste("Distribution of Survey Completion Time (Post Filter)"),
+    x = "Completion Time (seconds)",
+    y = "Count"
+  ) +
+  theme_bw()
 
 # How many completed the survey
 total_n <- as.numeric(nrow(rawData))
 filtered_n <- as.numeric(nrow(filteredData))
+
+# Completion time after log transformation
+ggplot(filteredData, aes(x = log(Duration..in.seconds.))) +
+  geom_histogram(bins = 20, fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Log-Transformed Survey Completion Times (Post filter)",
+    x = "Log Completion Time (seconds)",
+    y = "Count"
+  )
 
 count_df <- data.frame(Group = c("Total", "Filtered"), Count
                        = c(total_n, filtered_n))
 
 ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
+  geom_text(aes(label = Count), vjust = -0.5)  
   labs(
-    title = "Number of Observations: Total vs Filtered (W/O Flags Filtered)",
+    title = "Number of Observations: Total vs Filtered",
     x = "",
     y = "Count"
   ) + theme_bw()
