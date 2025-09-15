@@ -1,32 +1,3 @@
-library(ggplot2)
-library(dplyr)
-library(ordinal)
-library(lubridate)
-
-csv <- list.files(pattern = "RawData.csv")
-
-# Load in results, filter out unneeded info, replace -99 w NA
-rawData <- read.csv(csv, header = T, sep=",")
-rawData <- rawData[3:nrow(rawData), 5:ncol(rawData)] 
-rawData <- rawData %>%
-  mutate(across(everything(), ~ ifelse(. == -99, NA, .)))
-
-# Filter out non complete results
-rawData <- subset(rawData, rawData$AgreeToParticipate == 'I agree' & 
-                         rawData$Finished == 'True' &
-                         ((rawData$condition == 'control' & 
-                             rawData$AttentionCheck_ctrl == 
-                             'This code snippet is written in C.')
-                          | (rawData$condition == 'experimental' 
-                             & rawData$AttentionCheck_exp == 
-                               'This code snippet was generated using AI.')))
-
-# Add a row to manually track if security bug was detected
-rawData$noticed_security_bug <- NA
-
-# Add a flag for potential bot responses (If captcha score is below 4)
-rawData <- rawData %>% mutate(POTENTIAL_BOT = Q_RecaptchaScore < 0.4)
-
 # Histogram for overall response time (before bot filtering)
 rawData$Duration..in.seconds. <- 
   as.numeric(as.character(rawData$Duration..in.seconds.))
@@ -55,15 +26,8 @@ ggplot(botData, aes(x = Duration..in.seconds.)) +
   ) +
   theme_bw()
 
-# Due to high bot count after 2025-8-12, filter out all responses after that 
-# date
-filteredData <- rawData %>%
-  mutate(RecordedDate = ymd_hms(RecordedDate)) %>%
-  filter(as_date(RecordedDate) <= ymd("2025-08-12"))
-
-
-# Overwrite filtered Data with new CSV after manual security screening
-filteredData <- read.csv("filteredResponses.csv", header = T, sep=",")
+# Print count of who noticed security bug
+table(filteredData$noticed_security_bug)
 
 # Redo survey time histogram AFTER filtering
 ggplot(filteredData, aes(x = Duration..in.seconds.)) +
@@ -95,14 +59,15 @@ count_df <- data.frame(Group = c("Total", "Filtered"), Count
 ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5)  
-  labs(
-    title = "Number of Observations: Total vs Filtered",
-    x = "",
-    y = "Count"
-  ) + theme_bw()
+labs(
+  title = "Number of Observations: Total vs Filtered",
+  x = "",
+  y = "Count"
+) + theme_bw()
 
 # Survey Completion Time (minutes)
 summary(as.numeric(as.character(filteredData$Duration..in.seconds)))
+print(quantile(as.numeric(as.character(filteredData$Duration..in.seconds)), 0.05))
 
 # Overall Quality 
 quality_levels <- c("Very low quality", "Low quality", "Somewhat low quality", 
