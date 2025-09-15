@@ -4,6 +4,8 @@ library(ggplot2)
 library(dplyr)
 library(ordinal)
 library(lubridate)
+library(scales)
+library(purrr)
 
 csv <- list.files(pattern = "RawData.csv")
 
