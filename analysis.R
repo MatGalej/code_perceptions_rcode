@@ -116,8 +116,10 @@ ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
     position = position_stack(vjust = 0.5),
     size = 3, color = "black"
   ) +
-  scale_y_continuous(labels = percent_format(), expand = expansion(c(0, 0.01))) +
-  scale_fill_manual(values = cols, guide = guide_legend(reverse = TRUE), name = NULL) +
+  scale_y_continuous(labels = percent_format(), 
+                     expand = expansion(c(0, 0.01))) +
+  scale_fill_manual(values = cols, 
+                    guide = guide_legend(reverse = TRUE), name = NULL) +
   labs(
     title = "Overall Code Quality Ratings",
     x = NULL, y = NULL
@@ -128,7 +130,6 @@ ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
     legend.position = "top"
   )
 
- 
 # ==== For each likert scale, convert to numeric quantities ====
 likert_levels <- c("Strongly disagree", "Disagree",
                    "Neither agree nor disagree", 
@@ -153,7 +154,7 @@ filteredData <- filteredData %>%
 # ==== Stacked Plot of Each Likert Scale + helper function ====
 likert_100_plot_num <- function(df, item_col, title_text,
                                 drop_na = TRUE) {
-  # Map numeric 1..7 -> ordered factor with labels
+  # Map numeric 1 to 5 into ordered factor with labels
   resp_fac <- factor(df[[item_col]], levels = 1:5,
                      labels = likert_levels, ordered = TRUE)
   
@@ -174,25 +175,26 @@ likert_100_plot_num <- function(df, item_col, title_text,
     arrange(desc(pos_share)) %>%
     pull(condition)
   
-  plot_df <- plot_df %>% mutate(condition = factor(condition, levels = cond_order))
-  
-  # Colors (neg → neutral → pos)
+  plot_df <- plot_df %>% mutate(condition = factor(condition, 
+                                                   levels = cond_order))
   cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
   
   ggplot(plot_df, aes(x = condition, y = pct, fill = response)) +
     geom_col(width = 0.8) +
     coord_flip() +
     geom_text(aes(label = ifelse(pct >= 0.06, percent(pct, accuracy = 1), "")),
-              position = position_stack(vjust = 0.5), size = 3, color = "black") +
-    scale_y_continuous(labels = percent_format(), expand = expansion(c(0, 0.01))) +
-    scale_fill_manual(values = cols, guide = guide_legend(reverse = TRUE), name = NULL) +
+              position = position_stack(vjust = 0.5), size = 3, 
+              color = "black") +
+    scale_y_continuous(labels = percent_format(), 
+                       expand = expansion(c(0, 0.01))) +
+    scale_fill_manual(values = cols, 
+                      guide = guide_legend(reverse = TRUE), name = NULL) +
     labs(title = title_text, x = NULL, y = NULL) +
     theme_bw() +
     theme(panel.grid.major.y = element_blank(),
           legend.position = "top")
 }
 
-# Column sets and titles (edit these titles)
 likert_cols    <- paste0("Likert_", 1:10)
 ai_likert_cols <- paste0("AI_Likert_", 1:6)
 
@@ -216,7 +218,7 @@ ai_likert_titles <- c(
   "AI Q6: Overall, I trust the AI system I use"
 )
 
-# 4) Build the plot lists & print the likerts
+# Build the plot lists & print the likerts
 likert_plots <- map2(likert_cols, likert_titles,
                      ~ likert_100_plot_num(filteredData, .x, .y, 
                                            drop_na = TRUE))
@@ -242,9 +244,12 @@ catagoryTypes <- c("fewer than 30", "between 30 and 59", "between 60 and 89",
 filteredData$CreditHours_catagory <- as.numeric(factor(
   filteredData$CreditHours), levels=catagoryTypes, ordered=TRUE)
 
+sink(file = "spearmenTest.txt")
 cor.test(filteredData$CreditHours_catagory, filteredData$num_classes,
          method="spearman", exact=FALSE)
+sink()
 
+# ==== Setup for CLM and GLM testing ====  
 # Add in variables for core_class completion and security
 cs_core <- c("CS 250","CS 251","CS 252")
 cs_security <- c("CS 354","CS 355","CS 426")

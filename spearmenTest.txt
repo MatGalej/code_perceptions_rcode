@@ -1,0 +1,15 @@
+
+> cor.test(filteredData$CreditHours_catagory, filteredData$num_classes,
++          method="spearman", exact=FALSE)
+
+	Spearman's rank correlation rho
+
+data:  filteredData$CreditHours_catagory and filteredData$num_classes
+S = 11024, p-value = 0.01102
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+       rho 
+-0.4188043 
+
+
+> sink()
