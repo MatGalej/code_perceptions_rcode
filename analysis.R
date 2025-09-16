@@ -1,5 +1,4 @@
 # NOTE: Previous script must be run FIRST (DataClean.R)
-
 # ==== Histogram for overall response time (before bot filtering) ====
 rawData$Duration..in.seconds. <- 
   as.numeric(as.character(rawData$Duration..in.seconds.))
@@ -82,7 +81,7 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
 count_df <- data.frame(Group = c("Male", "Female"), Count
                        = c(sum(filteredData$Gender == "Man", na.rm = TRUE), 
                            sum(filteredData$Gender == "Woman", na.rm = TRUE)))
-ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+demo_1 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5) + 
   labs(
@@ -94,7 +93,7 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
 count_df <- data.frame(Group = c("Total", "First Gen"), Count
                        = c(as.numeric(nrow(filteredData)), 
                            sum(filteredData$FirstGen == "Yes", na.rm = TRUE)))
-ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+demo_2 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5) + 
   labs(
@@ -128,7 +127,7 @@ filteredData$taken_security <- sapply(filteredData$Courses, function(x) {
 count_df <- data.frame(Group = c("Completed Core", "Taken Security"), Count
                        = c(sum(filteredData$completed_core == TRUE),
                            sum(filteredData$taken_security == TRUE)))
-ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+demo_3 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5) + 
   labs(
@@ -147,7 +146,7 @@ count_df <- data.frame(Group = c("<30", "30 to 59", "60 to 89", ">=90"),
                                                   na.rm = TRUE),
                            sum(filteredData$CreditHours == "90 or more",
                                na.rm = TRUE)))
-ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+demo_4 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5) + 
   labs(
@@ -156,6 +155,7 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
     y = "Counts"
   ) + theme_bw()
 
+demographics_plots <- list(demo_1, demo_2, demo_3, demo_4)
 
 # ==== Overall Code Quality Stacked Likert Scale  ====
 quality_levels <- c(
@@ -395,3 +395,17 @@ for (i in 1:10) {
 }
 
 close(con)
+
+# ==== Save all plots to a PDF for easy viewing ====
+
+
+# Likert stacked plots
+pdf("./plots/all_likert_plots.pdf", width = 8, height = 5)
+for (p in likert_plots) print(p)
+for (p in ai_likert_plots) print(p)
+dev.off()
+
+# Demographics plots
+pdf("./plots/demographics_plots.pdf", width = 8, height = 5)
+for (p in demographics_plots) print(p)
+dev.off()
