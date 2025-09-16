@@ -77,6 +77,64 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
     y = "Counts"
   ) + theme_bw()
 
+# ==== Bar Graph of various demographics ====
+# Includes gender, first gen, core, sec, credit hours
+count_df <- data.frame(Group = c("Male", "Female"), Count
+                       = c(sum(filteredData$Gender == "Man", na.rm = TRUE), 
+                           sum(filteredData$Gender == "Woman", na.rm = TRUE)))
+ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+  geom_col() +
+  geom_text(aes(label = Count), vjust = -0.5) + 
+  labs(
+    title = "Demographics: Gender",
+    x = "",
+    y = "Counts"
+  ) + theme_bw()
+
+count_df <- data.frame(Group = c("Total", "First Gen"), Count
+                       = c(as.numeric(nrow(filteredData)), 
+                           sum(filteredData$FirstGen == "Yes", na.rm = TRUE)))
+ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+  geom_col() +
+  geom_text(aes(label = Count), vjust = -0.5) + 
+  labs(
+    title = "Demographics: First Gen",
+    x = "",
+    y = "Counts"
+  ) + theme_bw()
+
+count_df <- data.frame(Group = c("Completed Core", "Taken Security"), Count
+                       = c(sum(filteredData$completed_core == TRUE),
+                           sum(filteredData$taken_security == TRUE)))
+ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+  geom_col() +
+  geom_text(aes(label = Count), vjust = -0.5) + 
+  labs(
+    title = "Demographics: Core & Security Classes",
+    x = "",
+    y = "Counts"
+  ) + theme_bw()
+
+count_df <- data.frame(Group = c("<30", "30 to 59", "60 to 89", ">=90"), 
+                       Count
+                       = c(sum(filteredData$CreditHours == "fewer than 30",
+                               na.rm = TRUE), 
+                           sum(filteredData$CreditHours == "between 30 and 59",
+                                                  na.rm = TRUE),
+                           sum(filteredData$CreditHours == "between 60 and 89",
+                                                  na.rm = TRUE),
+                           sum(filteredData$CreditHours == "90 or more",
+                               na.rm = TRUE)))
+ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+  geom_col() +
+  geom_text(aes(label = Count), vjust = -0.5) + 
+  labs(
+    title = "Demographics: Credit Hours",
+    x = "",
+    y = "Counts"
+  ) + theme_bw()
+
+
 # ==== Overall Code Quality Stacked Likert Scale  ====
 quality_levels <- c(
   "Very low quality","Low quality",
