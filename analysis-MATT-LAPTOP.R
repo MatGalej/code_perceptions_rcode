@@ -75,11 +75,11 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
     y = "Counts"
   ) + theme_bw()
 
-# ==== Overall Code Quality Stacked Likert Scale  ====
+# ==== Stacked Likert Scale of Overall Code Quality ====
 quality_levels <- c(
-  "Very low quality","Low quality",
+  "Very low quality","Low quality","Somewhat low quality",
   "Neither high nor low quality",
-  "High quality","Very high quality"
+  "Somewhat high quality","High quality","Very high quality"
 )
 
 filteredData <- filteredData %>%
@@ -97,7 +97,7 @@ plot_df <- filteredData %>%
   ungroup()
 
 cond_order <- plot_df %>%
-  mutate(pos = ifelse(as.integer(quality_resp) >= 3, pct, 0)) %>%
+  mutate(pos = ifelse(as.integer(quality_resp) >= 5, pct, 0)) %>%
   group_by(condition) %>%
   summarise(pos_share = sum(pos), .groups = "drop") %>%
   arrange(desc(pos_share)) %>%
@@ -105,7 +105,7 @@ cond_order <- plot_df %>%
 
 plot_df <- plot_df %>%
   mutate(condition = factor(condition, levels = cond_order))
-cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
+cols <- c("#D73027","#FC8D59","#FEE090","#E0E0E0","#91BFDB","#4575B4","#313695")
 
 
 ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
@@ -119,7 +119,7 @@ ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
   scale_y_continuous(labels = percent_format(), expand = expansion(c(0, 0.01))) +
   scale_fill_manual(values = cols, guide = guide_legend(reverse = TRUE), name = NULL) +
   labs(
-    title = "Overall Code Quality Ratings",
+    title = "Overall Quality",
     x = NULL, y = NULL
   ) +
   theme_bw() +
@@ -128,45 +128,41 @@ ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
     legend.position = "top"
   )
 
- 
-# ==== For each likert scale, convert to numeric quantities ====
-likert_levels <- c("Strongly disagree", "Disagree",
-                   "Neither agree nor disagree", 
+# ==== For each likert scale, convert to numeric quantities ==== 
+likert_levels <- c("Strongly disagree", "Disagree", "Somewhat disagree", 
+                   "Neither agree nor disagree", "Somewhat agree", 
                    "Agree", "Strongly agree")
 
-likert_cols <- paste0("Likert_", 1:10)
+likert_cols    <- paste0("Likert_", 1:10)
 ai_likert_cols <- paste0("AI_Likert_", 1:6)
 
-safe_to_int <- function(x) {
-  if (is.numeric(x)) {
-    as.integer(x)
-  } else {
-    as.integer(factor(x, levels = likert_levels, ordered = TRUE))
-  }
-}
-
 filteredData <- filteredData %>%
-  mutate(condition = factor(condition)) %>%
-  mutate(across(all_of(likert_cols), ~ safe_to_int(.x), .names = "{.col}")) %>%
-  mutate(across(all_of(ai_likert_cols), ~ safe_to_int(.x), .names = "{.col}"))
+  mutate(
+    condition = factor(condition)
+  ) %>%
+  # Regular Likerts -> numeric
+  mutate(across(all_of(likert_cols),
+                ~ as.integer(factor(.x, levels = likert_levels, ordered = TRUE)),
+                .names = "Likert_numeric_{.col}")) %>%
+  # AI Likerts -> numeric
+  mutate(across(all_of(ai_likert_cols),
+                ~ as.integer(factor(.x, levels = likert_levels, ordered = TRUE)),
+                .names = "AI_Likert_numeric_{.col}"))
 
 # ==== Stacked Plot of Each Likert Scale + helper function ====
-likert_100_plot_num <- function(df, item_col, title_text,
-                                drop_na = TRUE) {
-  # Map numeric 1..7 -> ordered factor with labels
-  resp_fac <- factor(df[[item_col]], levels = 1:5,
-                     labels = likert_levels, ordered = TRUE)
+likert_100_plot <- function(df, item_col, title_text) {
+  # Use the original (categorical) column to preserve labels/order
+  resp_fac <- factor(df[[item_col]], levels = likert_levels, ordered = TRUE)
   
-  plot_df <- tibble(
-    condition = factor(df$condition),
-    response  = resp_fac
-  ) %>%
-    { if (drop_na) dplyr::filter(., !is.na(response)) else . } %>%
+  plot_df <- df %>%
+    transmute(condition = factor(condition), response = resp_fac) %>%
+    # count with all response levels present
     count(condition, response, .drop = FALSE) %>%
     group_by(condition) %>%
     mutate(pct = n / sum(n)) %>%
     ungroup()
   
+  # Optional: order conditions by positive share (5–7)
   cond_order <- plot_df %>%
     mutate(pos = ifelse(as.integer(response) >= 5, pct, 0)) %>%
     group_by(condition) %>%
@@ -174,65 +170,49 @@ likert_100_plot_num <- function(df, item_col, title_text,
     arrange(desc(pos_share)) %>%
     pull(condition)
   
-  plot_df <- plot_df %>% mutate(condition = factor(condition, levels = cond_order))
+  plot_df <- plot_df %>%
+    mutate(condition = factor(condition, levels = cond_order))
   
   # Colors (neg → neutral → pos)
-  cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
+  cols <- c("#D73027","#FC8D59","#FEE090","#E0E0E0","#91BFDB","#4575B4","#313695")
   
   ggplot(plot_df, aes(x = condition, y = pct, fill = response)) +
     geom_col(width = 0.8) +
     coord_flip() +
-    geom_text(aes(label = ifelse(pct >= 0.06, percent(pct, accuracy = 1), "")),
-              position = position_stack(vjust = 0.5), size = 3, color = "black") +
+    geom_text(
+      aes(label = ifelse(pct >= 0.06, percent(pct, accuracy = 1), "")),
+      position = position_stack(vjust = 0.5),
+      size = 3, color = "black"
+    ) +
     scale_y_continuous(labels = percent_format(), expand = expansion(c(0, 0.01))) +
     scale_fill_manual(values = cols, guide = guide_legend(reverse = TRUE), name = NULL) +
     labs(title = title_text, x = NULL, y = NULL) +
     theme_bw() +
-    theme(panel.grid.major.y = element_blank(),
-          legend.position = "top")
+    theme(
+      panel.grid.major.y = element_blank(),
+      legend.position = "top"
+    )
 }
 
-# Column sets and titles (edit these titles)
-likert_cols    <- paste0("Likert_", 1:10)
-ai_likert_cols <- paste0("AI_Likert_", 1:6)
-
 likert_titles <- c(
-  "Q1: The code is readable", "Q2: The code is well-structured",
-  "Q3: The code is testable", "Q4: The code is robust", 
-  "Q5: The code is secure", "Q6: The code is well-documented", 
-  "Q7: The code is easy to understand", "Q8: The code is correct", 
-  "Q9: The code is free of bugs", "Q10: The code is adaptable"
+  "Item 1 title", "Item 2 title", "Item 3 title", "Item 4 title", "Item 5 title",
+  "Item 6 title", "Item 7 title", "Item 8 title", "Item 9 title", "Item 10 title"
 )
 
 ai_likert_titles <- c(
-  "AI Q1: I trust the systems' output",
-  "AI Q2: The output the system produces 
-  is as good as that which a highly competent person could produce.",
-  "AI Q3: I know what will happen the next time I use the system because 
-  I understand how it behaves",
-  "AI Q4: I believe the output of the system even when I don't know for 
-  certain that it is correct",
-  "AI Q5: I have a personal preference for using such AI systems for my tasks",
-  "AI Q6: Overall, I trust the AI system I use"
+  "AI Item 1 title", "AI Item 2 title", "AI Item 3 title",
+  "AI Item 4 title", "AI Item 5 title", "AI Item 6 title"
 )
 
-# 4) Build the plot lists & print the likerts
-likert_plots <- map2(likert_cols, likert_titles,
-                     ~ likert_100_plot_num(filteredData, .x, .y, 
-                                           drop_na = TRUE))
-ai_likert_plots <- map2(ai_likert_cols, ai_likert_titles,
-                        ~ likert_100_plot_num(filteredData, .x, .y, 
-                                              drop_na = TRUE))
+likert_plots <- map2(likert_cols, likert_titles, ~
+                       likert_100_plot(filteredData, .x, .y)
+)
 
-for (i in 1:10) {
-  print(likert_plots[[i]])
-}
+ai_likert_plots <- map2(ai_likert_cols, ai_likert_titles, ~
+                          likert_100_plot(filteredData, .x, .y)
+)
 
-for (i in 1:6) {
-  print(ai_likert_plots[[i]])
-}
-
-# ==== Spearman correlation testing for credit hours and CS courses ==== 
+# Spearman correlation testing for credit hours and CS courses
 filteredData$num_classes <- as.numeric(lengths(strsplit(
   filteredData$Courses, ",")))
 
