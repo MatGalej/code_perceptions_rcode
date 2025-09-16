@@ -1,0 +1,29 @@
+
+> summary(qual_perception_overall)
+formula: 
+factor(Rate_Overall_Quality_Numeric) ~ condition + (condition * avg_ai_trust) + CreditHours_catagory + completed_core + taken_security
+data:    filteredData
+
+ link  threshold nobs logLik AIC   niter max.grad cond.H 
+ logit flexible  36   -37.85 95.70 6(0)  6.37e-07 5.2e+03
+
+Coefficients:
+                                   Estimate Std. Error z value Pr(>|z|)   
+conditionexperimental               -9.1124     3.0576  -2.980  0.00288 **
+avg_ai_trust                        -1.8541     0.7646  -2.425  0.01531 * 
+CreditHours_catagory                -0.6442     0.3846  -1.675  0.09394 . 
+completed_coreTRUE                  -0.4122     0.7505  -0.549  0.58282   
+taken_securityTRUE                  -0.2582     1.0729  -0.241  0.80985   
+conditionexperimental:avg_ai_trust   2.8065     1.0066   2.788  0.00530 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Threshold coefficients:
+    Estimate Std. Error z value
+1|2  -11.419      2.940  -3.883
+2|3   -9.596      2.777  -3.456
+3|4   -7.796      2.667  -2.923
+4|5   -4.053      2.312  -1.753
+(1 observation deleted due to missingness)
+
+> sink()

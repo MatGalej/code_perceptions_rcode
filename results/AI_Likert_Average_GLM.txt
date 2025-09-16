@@ -1,0 +1,29 @@
+
+> summary(bug_detected)
+
+Call:
+glm(formula = noticed_security_bug ~ condition + (condition * 
+    avg_ai_trust) + CreditHours_catagory + completed_core + taken_security, 
+    family = gaussian(), data = filteredData)
+
+Coefficients:
+                                   Estimate Std. Error t value Pr(>|t|)
+(Intercept)                         0.06693    0.31375   0.213    0.833
+conditionexperimental               0.39532    0.40135   0.985    0.333
+avg_ai_trust                        0.07198    0.10018   0.719    0.478
+CreditHours_catagory               -0.09068    0.06331  -1.432    0.163
+completed_coreTRUE                 -0.05719    0.12741  -0.449    0.657
+taken_securityTRUE                 -0.14770    0.19132  -0.772    0.446
+conditionexperimental:avg_ai_trust -0.10130    0.13885  -0.730    0.471
+
+(Dispersion parameter for gaussian family taken to be 0.1068756)
+
+    Null deviance: 3.5556  on 35  degrees of freedom
+Residual deviance: 3.0994  on 29  degrees of freedom
+  (1 observation deleted due to missingness)
+AIC: 29.88
+
+Number of Fisher Scoring iterations: 2
+
+
+> sink()

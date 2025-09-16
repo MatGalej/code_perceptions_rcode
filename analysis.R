@@ -1,3 +1,5 @@
+# NOTE: Previous script must be run FIRST (DataClean.R)
+
 # ==== Histogram for overall response time (before bot filtering) ====
 rawData$Duration..in.seconds. <- 
   as.numeric(as.character(rawData$Duration..in.seconds.))
@@ -244,12 +246,13 @@ catagoryTypes <- c("fewer than 30", "between 30 and 59", "between 60 and 89",
 filteredData$CreditHours_catagory <- as.numeric(factor(
   filteredData$CreditHours), levels=catagoryTypes, ordered=TRUE)
 
-sink(file = "spearmenTest.txt")
+sink(file = "./results/spearmenTest.txt")
 cor.test(filteredData$CreditHours_catagory, filteredData$num_classes,
          method="spearman", exact=FALSE)
 sink()
 
 # ==== Setup for CLM and GLM testing ====  
+
 # Add in variables for core_class completion and security
 cs_core <- c("CS 250","CS 251","CS 252")
 cs_security <- c("CS 354","CS 355","CS 426")
@@ -272,39 +275,66 @@ filteredData$taken_security <- sapply(filteredData$Courses, function(x) {
   any(cs_security %in% courses)
 })
 
-# trust_in_AI likert calculations
-ai_questions <- c("AI_Likert_numeric_1", "AI_Likert_numeric_2",
-                  "AI_Likert_numeric_3", "AI_Likert_numeric_4",
-                  "AI_Likert_numeric_5", "AI_Likert_numeric_6")
-filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_questions])
+# trust_in_AI likert calculations & Rate_Overall_Quality_Numeric (Average)  
+filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_likert_cols], 
+                                      na.rm = TRUE)
 
-# GLM model for the relationship:
+filteredData$Rate_Overall_Quality_Numeric <- as.numeric(factor(
+  filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE))
+
+# ==== GLM model for the relationship: ====
 # noticed_security_bug ~ condition + condition*trust_in_AI + credithours + 
 # completed_CS_core + security_class
 bug_detected <- glm(noticed_security_bug ~ condition +
                       (condition*avg_ai_trust) + CreditHours_catagory
                     + completed_core + taken_security, data=filteredData,
                     family = gaussian())
+sink(file = "./results/AI_Likert_Average_GLM.txt")
 summary(bug_detected)
+sink()
 
-# CLM Models for various quality perceptions, including from overall, likert, 
-# etc.
-
+# CLM Model for overall quality likert
 qual_perception_overall <- clm(factor(Rate_Overall_Quality_Numeric) ~ condition +
                                  (condition*avg_ai_trust) + CreditHours_catagory
                                + completed_core + taken_security,
                                data=filteredData)
+sink(file = "./results/Overall_Qual_Likert_Average_CLM.txt")
 summary(qual_perception_overall)
+sink()
 
-
-likert_questions <- c("Likert_numeric_1", "Likert_numeric_2", "Likert_numeric_3",
-                      "Likert_numeric_4", "Likert_numeric_5", "Likert_numeric_6",
-                      "Likert_numeric_7", "Likert_numeric_8", "Likert_numeric_9",
-                      "Likert_numeric_10")
-filteredData$likert_avg <- rowMeans(filteredData[,likert_questions])
+# CLM model for quality based on average of all quality likerts
+filteredData$likert_avg <- rowMeans(filteredData[,likert_cols])
 
 qual_perception_likert <- clm(factor(likert_avg) ~ condition +
                                 (condition*avg_ai_trust) + CreditHours_catagory
                               + completed_core + taken_security,
                               data=filteredData)
+sink(file = "./results/Specific_Likert_Average_CLM.txt")
 summary(qual_perception_likert)
+sink()
+
+# CLM model PER LIKERT
+out_path <- "./results/Per_likert_CLM.txt"
+con <- file(out_path, open = "wt")
+fac_cols <- paste0("fac_", likert_cols)
+
+for (i in 1:10) {
+  colname <- paste0("Likert_", i)
+  fml <- as.formula(
+    paste0("factor(", colname, ") ~ condition + condition*avg_ai_trust + ",
+           "CreditHours_catagory + completed_core + taken_security")
+  )
+  
+  fit <- try(clm(fml, data = filteredData), silent = TRUE)
+  
+  writeLines(paste0("\n================ Likert_", i, " ================\n"), 
+             con)
+  
+  if (inherits(fit, "try-error")) {
+    writeLines("Model failed for this item.\n", con)
+  } else {
+    writeLines(capture.output(summary(fit)), con)
+  }
+}
+
+close(con)
