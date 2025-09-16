@@ -103,6 +103,28 @@ ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
     y = "Counts"
   ) + theme_bw()
 
+# Add in variables for core_class completion and security
+cs_core <- c("CS 250","CS 251","CS 252")
+cs_security <- c("CS 354","CS 355","CS 426")
+
+# Check if a participant has completed ALL core classes
+filteredData$completed_core <- sapply(filteredData$Courses, function(x) {
+  if (is.na(x)) {
+    return(FALSE)
+  }
+  courses <- trimws(unlist(strsplit(x, ",")))
+  all(cs_core %in% courses)
+})
+
+# Checks if a participant has completed AT LEAST ONE security course
+filteredData$taken_security <- sapply(filteredData$Courses, function(x) {
+  if (is.na(x)) {
+    return(FALSE)
+  }
+  courses <- trimws(unlist(strsplit(x, ",")))
+  any(cs_security %in% courses)
+})
+
 count_df <- data.frame(Group = c("Completed Core", "Taken Security"), Count
                        = c(sum(filteredData$completed_core == TRUE),
                            sum(filteredData$taken_security == TRUE)))
@@ -310,29 +332,6 @@ cor.test(filteredData$CreditHours_catagory, filteredData$num_classes,
 sink()
 
 # ==== Setup for CLM and GLM testing ====  
-
-# Add in variables for core_class completion and security
-cs_core <- c("CS 250","CS 251","CS 252")
-cs_security <- c("CS 354","CS 355","CS 426")
-
-# Check if a participant has completed ALL core classes
-filteredData$completed_core <- sapply(filteredData$Courses, function(x) {
-  if (is.na(x)) {
-    return(FALSE)
-  }
-  courses <- trimws(unlist(strsplit(x, ",")))
-  all(cs_core %in% courses)
-})
-
-# Checks if a participant has completed AT LEAST ONE security course
-filteredData$taken_security <- sapply(filteredData$Courses, function(x) {
-  if (is.na(x)) {
-    return(FALSE)
-  }
-  courses <- trimws(unlist(strsplit(x, ",")))
-  any(cs_security %in% courses)
-})
-
 # trust_in_AI likert calculations & Rate_Overall_Quality_Numeric (Average)  
 filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_likert_cols], 
                                       na.rm = TRUE)
