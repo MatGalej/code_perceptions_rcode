@@ -3,7 +3,7 @@
 rawData$Duration..in.seconds. <- 
   as.numeric(as.character(rawData$Duration..in.seconds.))
 
-ggplot(rawData, aes(x = Duration..in.seconds.)) +
+hist_1 <-ggplot(rawData, aes(x = Duration..in.seconds.)) +
   geom_histogram(binwidth = 60, 
                  fill = "steelblue", color = "black", alpha = 0.7) +
   labs(
@@ -17,7 +17,7 @@ ggplot(rawData, aes(x = Duration..in.seconds.)) +
 botData <- rawData %>%
   filter(POTENTIAL_BOT == TRUE)
 
-ggplot(botData, aes(x = Duration..in.seconds.)) +
+hist_2 <-ggplot(botData, aes(x = Duration..in.seconds.)) +
   geom_histogram(binwidth = 60,
                  fill = "steelblue", color = "black", alpha = 0.7) +
   labs(
@@ -28,7 +28,7 @@ ggplot(botData, aes(x = Duration..in.seconds.)) +
   theme_bw()
 
 # ==== Histogram for overall response time (after bot filtering) ====
-ggplot(filteredData, aes(x = Duration..in.seconds.)) +
+hist_3 <- ggplot(filteredData, aes(x = Duration..in.seconds.)) +
   geom_histogram(binwidth = 120, 
                  fill = "steelblue", color = "black", alpha = 0.7) +
   labs(
@@ -39,13 +39,15 @@ ggplot(filteredData, aes(x = Duration..in.seconds.)) +
   theme_bw()
 
 # ==== Histogram for overall response time (after bot filtering + log transform) ====
-ggplot(filteredData, aes(x = log(Duration..in.seconds.))) +
+hist_4 <- ggplot(filteredData, aes(x = log(Duration..in.seconds.))) +
   geom_histogram(bins = 20, fill = "steelblue", color = "black", alpha = 0.7) +
   labs(
     title = "Log-Transformed Survey Completion Times (Post filter)",
     x = "Completion Times (seconds)",
     y = "Count"
   )
+
+histogram_plots <- list(hist_1, hist_2, hist_3, hist_4)
 
 # ==== Bar Graph of Total Observations vs Filtered ====
 count_df <- data.frame(Group = c("Total", "Filtered"), Count
@@ -408,4 +410,10 @@ dev.off()
 # Demographics plots
 pdf("./plots/demographics_plots.pdf", width = 8, height = 5)
 for (p in demographics_plots) print(p)
+dev.off()
+
+# Histogram plots
+# Demographics plots
+pdf("./plots/hisogram_plots.pdf", width = 8, height = 5)
+for (p in histogram_plots) print(p)
 dev.off()
