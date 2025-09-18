@@ -3,7 +3,7 @@
 rawData$Duration..in.seconds. <- 
   as.numeric(as.character(rawData$Duration..in.seconds.))
 
-hist_1 <-ggplot(rawData, aes(x = Duration..in.seconds.)) +
+hist_1 <- ggplot(rawData, aes(x = Duration..in.seconds.)) +
   geom_histogram(binwidth = 60, 
                  fill = "steelblue", color = "black", alpha = 0.7) +
   labs(
@@ -49,12 +49,16 @@ hist_4 <- ggplot(filteredData, aes(x = log(Duration..in.seconds.))) +
 
 histogram_plots <- list(hist_1, hist_2, hist_3, hist_4)
 
+for (p in histogram_plots) {
+  print(p)
+}
+
 # ==== Bar Graph of Total Observations vs Filtered ====
 count_df <- data.frame(Group = c("Total", "Filtered"), Count
                        = c(as.numeric(nrow(rawData)), 
                            as.numeric(nrow(filteredData))))
 
-ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+bar_1 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5) + 
 labs(
@@ -69,7 +73,7 @@ count_df <- data.frame(Group = c("Total", "Noticed"), Count
                            sum(filteredData$noticed_security_bug == TRUE, 
                                na.rm = TRUE)))
 
-ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
+bar_2 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5) + 
   labs(
@@ -157,7 +161,11 @@ demo_4 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
     y = "Counts"
   ) + theme_bw()
 
-demographics_plots <- list(demo_1, demo_2, demo_3, demo_4)
+demographics_plots <- list(bar_1, bar_2, demo_1, demo_2, demo_3, demo_4)
+
+for (p in demographics_plots) {
+  print(p)  
+}
 
 # ==== Overall Code Quality Stacked Likert Scale  ====
 quality_levels <- c(
