@@ -346,6 +346,18 @@ sink()
 filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_likert_cols], 
                                       na.rm = TRUE)
 
+# Figure for average AI trust
+filteredData$avg_ai_trust_allCond <- pmin(
+  pmax(round(filteredData$avg_ai_trust), 1), 5
+)
+
+# TODO: adjust to aggregrate total data, DONT facet by condition
+avg_ai_trust_plot <- likert_100_plot_num(filteredData, "avg_ai_trust_allCond",
+  "Average AI Trust (Rounded to Likert)"
+)
+print(avg_ai_trust_plot)
+
+
 filteredData$Rate_Overall_Quality_Numeric <- as.numeric(factor(
   filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE))
 
