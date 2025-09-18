@@ -346,14 +346,43 @@ sink()
 filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_likert_cols], 
                                       na.rm = TRUE)
 
-# Figure for average AI trust
+# ==== Figure for average AI trust =====
 filteredData$avg_ai_trust_allCond <- pmin(
   pmax(round(filteredData$avg_ai_trust), 1), 5
 )
 
+likert_100_plot_num_agg <- function(df, item_col, title_text, drop_na = TRUE) {
+  # Map numeric 1..5 into ordered factor with labels
+  resp_fac <- factor(df[[item_col]], levels = 1:5,
+                     labels = likert_levels, ordered = TRUE)
+  
+  plot_df <- tibble(response = resp_fac) %>%
+    { if (drop_na) dplyr::filter(., !is.na(response)) else . } %>%
+    count(response, .drop = FALSE) %>%
+    mutate(pct = n / sum(n))
+  
+  cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
+  
+  ggplot(plot_df, aes(x = 1, y = pct, fill = response)) +
+    geom_col(width=0.8) +
+    coord_flip(xlim = c(0, 2)) +
+    geom_text(aes(label = ifelse(pct >= 0.06, percent(pct, accuracy = 1), "")),
+              position = position_stack(vjust = 0.5), size = 3, color = "black") +
+    scale_y_continuous(labels = percent_format(), expand = expansion(c(0, 0.01))) +
+    scale_fill_manual(values = cols, guide = guide_legend(reverse = TRUE), name = NULL) +
+    labs(title = title_text, x = NULL, y = NULL) +
+    theme_bw() +
+    theme(axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          panel.grid.major.y = element_blank(),
+          legend.position = "top")
+}
+
+
 # TODO: adjust to aggregrate total data, DONT facet by condition
-avg_ai_trust_plot <- likert_100_plot_num(filteredData, "avg_ai_trust_allCond",
-  "Average AI Trust (Rounded to Likert)"
+avg_ai_trust_plot <- likert_100_plot_num_agg(filteredData,
+                                             "avg_ai_trust_allCond",
+  "Average AI Trust for all conditions (Rounded to Likert)"
 )
 print(avg_ai_trust_plot)
 
@@ -457,6 +486,7 @@ close(con)
 pdf("./plots/all_likert_plots.pdf", width = 8, height = 5)
 for (p in likert_plots) print(p)
 for (p in ai_likert_plots) print(p)
+print(avg_ai_trust_plot)
 dev.off()
 
 # Demographics plots
