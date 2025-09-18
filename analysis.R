@@ -406,6 +406,38 @@ for (i in 1:10) {
 
 close(con)
 
+# ==== Per likert calculations based on different AI trust calc. ====
+filteredData$filtered_avg_ai_trust <- if_else(
+  filteredData$condition == "control",
+  0,
+  filteredData$avg_ai_trust
+)
+
+out_path <- "./results/Per_likert_CLM_filteredAiTrust.txt"
+con <- file(out_path, open = "wt")
+fac_cols <- paste0("fac_", likert_cols)
+
+for (i in 1:10) {
+  colname <- paste0("Likert_", i)
+  fml <- as.formula(
+    paste0("factor(", colname, ") ~ condition + filtered_avg_ai_trust + ",
+           "CreditHours_catagory + completed_core + taken_security")
+  )
+  
+  fit <- try(clm(fml, data = filteredData), silent = TRUE)
+  
+  writeLines(paste0("\n================ Likert_", i, " ================\n"), 
+             con)
+  
+  if (inherits(fit, "try-error")) {
+    writeLines("Model failed for this item.\n", con)
+  } else {
+    writeLines(capture.output(summary(fit)), con)
+  }
+}
+
+close(con)
+
 # ==== Save all plots to a PDF for easy viewing ====
 
 
