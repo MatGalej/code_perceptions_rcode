@@ -167,61 +167,6 @@ for (p in demographics_plots) {
   print(p)  
 }
 
-# ==== Overall Code Quality Stacked Likert Scale  ====
-quality_levels <- c(
-  "Very low quality","Low quality",
-  "Neither high nor low quality",
-  "High quality","Very high quality"
-)
-
-filteredData <- filteredData %>%
-  mutate(
-    condition = factor(condition),
-    quality_resp = factor(RateOverallQuality,
-                          levels = quality_levels, ordered = TRUE)
-  )
-
-# Compute within-condition percentages (so bars sum to 100%)
-plot_df <- filteredData %>%
-  count(condition, quality_resp, .drop = FALSE) %>%
-  group_by(condition) %>%
-  mutate(pct = n / sum(n)) %>%
-  ungroup()
-
-cond_order <- plot_df %>%
-  mutate(pos = ifelse(as.integer(quality_resp) >= 3, pct, 0)) %>%
-  group_by(condition) %>%
-  summarise(pos_share = sum(pos), .groups = "drop") %>%
-  arrange(desc(pos_share)) %>%
-  pull(condition)
-
-plot_df <- plot_df %>%
-  mutate(condition = factor(condition, levels = cond_order))
-cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
-
-
-ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
-  geom_col(width = 0.8) +
-  coord_flip() +
-  geom_text(
-    aes(label = ifelse(pct >= 0.06, percent(pct, accuracy = 1), "")),
-    position = position_stack(vjust = 0.5),
-    size = 3, color = "black"
-  ) +
-  scale_y_continuous(labels = percent_format(), 
-                     expand = expansion(c(0, 0.01))) +
-  scale_fill_manual(values = cols, 
-                    guide = guide_legend(reverse = TRUE), name = NULL) +
-  labs(
-    title = "Overall Code Quality Ratings",
-    x = NULL, y = NULL
-  ) +
-  theme_bw() +
-  theme(
-    panel.grid.major.y = element_blank(),
-    legend.position = "top"
-  )
-
 # ==== For each likert scale, convert to numeric quantities ====
 likert_levels <- c("Strongly disagree", "Disagree",
                    "Neither agree nor disagree", 
@@ -326,35 +271,23 @@ for (i in 1:6) {
   print(ai_likert_plots[[i]])
 }
 
-# ==== Spearman correlation testing for credit hours and CS courses ==== 
-filteredData$num_classes <- as.numeric(lengths(strsplit(
-  filteredData$Courses, ",")))
-
-catagoryTypes <- c("fewer than 30", "between 30 and 59", "between 60 and 89", 
-                   "90 or more")
-
-filteredData$CreditHours_catagory <- as.numeric(factor(
-  filteredData$CreditHours), levels=catagoryTypes, ordered=TRUE)
-
-sink(file = "./results/spearmenTest.txt")
-cor.test(filteredData$CreditHours_catagory, filteredData$num_classes,
-         method="spearman", exact=FALSE)
-sink()
-
-# ==== Setup for CLM and GLM testing ====  
+# ==== Stacked Likert for average AI trust =====
 # trust_in_AI likert calculations & Rate_Overall_Quality_Numeric (Average)  
 filteredData$avg_ai_trust <- rowMeans(filteredData[,ai_likert_cols], 
                                       na.rm = TRUE)
 
-# ==== Figure for average AI trust =====
 filteredData$avg_ai_trust_allCond <- pmin(
   pmax(round(filteredData$avg_ai_trust), 1), 5
 )
 
+trust_levels <- c("Very Poor", "Poor",
+                  "Nutreal", 
+                  "Strong", "Very Strong")
+
 likert_100_plot_num_agg <- function(df, item_col, title_text, drop_na = TRUE) {
   # Map numeric 1..5 into ordered factor with labels
   resp_fac <- factor(df[[item_col]], levels = 1:5,
-                     labels = likert_levels, ordered = TRUE)
+                     labels = trust_levels, ordered = TRUE)
   
   plot_df <- tibble(response = resp_fac) %>%
     { if (drop_na) dplyr::filter(., !is.na(response)) else . } %>%
@@ -379,14 +312,83 @@ likert_100_plot_num_agg <- function(df, item_col, title_text, drop_na = TRUE) {
 }
 
 
-# TODO: adjust to aggregrate total data, DONT facet by condition
 avg_ai_trust_plot <- likert_100_plot_num_agg(filteredData,
                                              "avg_ai_trust_allCond",
-  "Average AI Trust for all conditions (Rounded to Likert)"
+                                             "Average AI Trust for all conditions (Rounded to Likert)"
 )
 print(avg_ai_trust_plot)
 
+# ==== Overall Code Quality Stacked Likert Figure  ====
+quality_levels <- c(
+  "Very low quality","Low quality",
+  "Neither high nor low quality",
+  "High quality","Very high quality"
+)
 
+filteredData <- filteredData %>%
+  mutate(
+    condition = factor(condition),
+    quality_resp = factor(RateOverallQuality,
+                          levels = quality_levels, ordered = TRUE)
+  )
+
+# Compute within-condition percentages (so bars sum to 100%)
+plot_df <- filteredData %>%
+  count(condition, quality_resp, .drop = FALSE) %>%
+  group_by(condition) %>%
+  mutate(pct = n / sum(n)) %>%
+  ungroup()
+
+cond_order <- plot_df %>%
+  mutate(pos = ifelse(as.integer(quality_resp) >= 3, pct, 0)) %>%
+  group_by(condition) %>%
+  summarise(pos_share = sum(pos), .groups = "drop") %>%
+  arrange(desc(pos_share)) %>%
+  pull(condition)
+
+plot_df <- plot_df %>%
+  mutate(condition = factor(condition, levels = cond_order))
+cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
+
+
+ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
+  geom_col(width = 0.8) +
+  coord_flip() +
+  geom_text(
+    aes(label = ifelse(pct >= 0.06, percent(pct, accuracy = 1), "")),
+    position = position_stack(vjust = 0.5),
+    size = 3, color = "black"
+  ) +
+  scale_y_continuous(labels = percent_format(), 
+                     expand = expansion(c(0, 0.01))) +
+  scale_fill_manual(values = cols, 
+                    guide = guide_legend(reverse = TRUE), name = NULL) +
+  labs(
+    title = "Overall Code Quality Ratings",
+    x = NULL, y = NULL
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "top"
+  )
+
+# ==== Spearman correlation testing for credit hours and CS courses ==== 
+filteredData$num_classes <- as.numeric(lengths(strsplit(
+  filteredData$Courses, ",")))
+
+catagoryTypes <- c("fewer than 30", "between 30 and 59", "between 60 and 89", 
+                   "90 or more")
+
+filteredData$CreditHours_catagory <- as.numeric(factor(
+  filteredData$CreditHours), levels=catagoryTypes, ordered=TRUE)
+
+sink(file = "./results/spearmenTest.txt")
+cor.test(filteredData$CreditHours_catagory, filteredData$num_classes,
+         method="spearman", exact=FALSE)
+sink()
+
+# ==== Setup for CLM and GLM testing ====  
 filteredData$Rate_Overall_Quality_Numeric <- as.numeric(factor(
   filteredData$RateOverallQuality, levels=quality_levels, ordered = TRUE))
 
@@ -401,7 +403,7 @@ sink(file = "./results/AI_Likert_Average_GLM.txt")
 summary(bug_detected)
 sink()
 
-# CLM Model for overall quality likert
+# ==== CLM Model for overall quality likert ====
 qual_perception_overall <- clm(factor(Rate_Overall_Quality_Numeric) ~ condition +
                                  (condition*avg_ai_trust) + CreditHours_catagory
                                + completed_core + taken_security,
@@ -478,6 +480,13 @@ for (i in 1:10) {
 }
 
 close(con)
+
+# ==== Linear Regression testing relation of ai trust to credits + core completion ====
+trust_to_exp <- glm(avg_ai_trust ~ CreditHours_catagory + 
+                      completed_core,data=filteredData, family = gaussian())
+sink(file = "./results/AiTrust_to_Expierience_GLM.txt")
+summary(trust_to_exp)
+sink()
 
 # ==== Save all plots to a PDF for easy viewing ====
 

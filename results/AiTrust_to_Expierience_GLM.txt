@@ -1,0 +1,26 @@
+
+> summary(trust_to_exp)
+
+Call:
+glm(formula = avg_ai_trust ~ CreditHours_catagory + completed_core, 
+    family = gaussian(), data = filteredData)
+
+Coefficients:
+                     Estimate Std. Error t value Pr(>|t|)    
+(Intercept)           2.79451    0.43221   6.466 2.47e-07 ***
+CreditHours_catagory  0.01333    0.17169   0.078    0.939    
+completed_coreTRUE    0.01847    0.31913   0.058    0.954    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for gaussian family taken to be 0.8019925)
+
+    Null deviance: 26.471  on 35  degrees of freedom
+Residual deviance: 26.466  on 33  degrees of freedom
+  (1 observation deleted due to missingness)
+AIC: 99.088
+
+Number of Fisher Scoring iterations: 2
+
+
+> sink()
