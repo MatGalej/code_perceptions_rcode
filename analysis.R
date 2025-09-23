@@ -373,6 +373,36 @@ ggplot(plot_df, aes(x = condition, y = pct, fill = quality_resp)) +
     legend.position = "top"
   )
 
+# ==== Stacked Likert combining all general Likerts ====
+long <- do.call(rbind, lapply(likert_cols, function(nm) {
+  data.frame(
+    condition = factor(filteredData$condition),
+    item = sub("Likert_", "Q ", nm),
+    response  = factor(filteredData[[nm]],levels = 1:5,
+                       labels = likert_levels,
+                       ordered = TRUE),
+    stringsAsFactors = FALSE
+  )}))
+long <- long[!is.na(long$response), , drop = FALSE]
+
+# Enforce numeric order
+long$item <- factor(long$item, levels = paste("Q", 1:10), ordered = TRUE)
+
+p_likert_all_faceted <- ggplot(long, aes(x = item, fill = response)) +
+  geom_bar(position = "fill", width = 0.8) +
+  coord_flip() +
+  facet_wrap(~ condition, ncol = 1) +
+  scale_y_continuous(labels = percent_format(),
+                     expand = expansion(c(0, 0.01))) +
+  scale_fill_manual(values = cols, guide = guide_legend(reverse = TRUE),
+                    name = NULL) +
+  labs(title = "Q1–Q10 Quality Summary (By Condition)", x = NULL, y = NULL) +
+  theme_bw() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position = "top")
+
+print(p_likert_all_faceted)
+
 # ==== Spearman correlation testing for credit hours and CS courses ==== 
 filteredData$num_classes <- as.numeric(lengths(strsplit(
   filteredData$Courses, ",")))
@@ -496,6 +526,7 @@ pdf("./plots/all_likert_plots.pdf", width = 8, height = 5)
 for (p in likert_plots) print(p)
 for (p in ai_likert_plots) print(p)
 print(avg_ai_trust_plot)
+print(p_likert_all_faceted)
 dev.off()
 
 # Demographics plots
