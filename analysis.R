@@ -142,7 +142,9 @@ demo_3 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
     y = "Counts"
   ) + theme_bw()
 
-count_df <- data.frame(Group = c("<30", "30 to 59", "60 to 89", ">=90"), 
+
+credit_levels <- c("<30", "30 to 59", "60 to 89", ">=90")
+count_df <- data.frame(Group = credit_levels, 
                        Count
                        = c(sum(filteredData$CreditHours == "fewer than 30",
                                na.rm = TRUE), 
@@ -152,6 +154,8 @@ count_df <- data.frame(Group = c("<30", "30 to 59", "60 to 89", ">=90"),
                                                   na.rm = TRUE),
                            sum(filteredData$CreditHours == "90 or more",
                                na.rm = TRUE)))
+count_df$Group <- factor(count_df$Group, levels = credit_levels)
+
 demo_4 <- ggplot(count_df, aes(x = Group, y = Count, fill = Group)) +
   geom_col() +
   geom_text(aes(label = Count), vjust = -0.5) + 
@@ -205,13 +209,8 @@ likert_100_plot_num <- function(df, item_col, title_text,
     mutate(pct = n / sum(n)) %>%
     ungroup()
   
-  cond_order <- plot_df %>%
-    mutate(pos = ifelse(as.integer(response) >= 5, pct, 0)) %>%
-    group_by(condition) %>%
-    summarise(pos_share = sum(pos), .groups = "drop") %>%
-    arrange(desc(pos_share)) %>%
-    pull(condition)
-  
+  plot_df$condition <- factor(plot_df$condition, 
+                              levels = c("control", "experimental"))
   plot_df <- plot_df %>% mutate(condition = factor(condition, 
                                                    levels = cond_order))
   cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
@@ -519,8 +518,6 @@ summary(trust_to_exp)
 sink()
 
 # ==== Save all plots to a PDF for easy viewing ====
-
-
 # Likert stacked plots
 pdf("./plots/all_likert_plots.pdf", width = 8, height = 5)
 for (p in likert_plots) print(p)
