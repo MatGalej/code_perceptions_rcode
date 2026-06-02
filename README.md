@@ -18,5 +18,5 @@ This repository serves as the main location of the analysis code and figures use
 
 1. Clone repository via ```git clone```
 2. Ensure that all required dependencies are installed
-3. Execute the ```DataClean.R``` file, followed by the ``analysis.R``` file.
+3. Execute the ```DataClean.R``` file, followed by the ```analysis.R``` file.
     * ```DataClean.R``` requires that a ```RawData.csv``` file exists within the top most folder of the repository.
