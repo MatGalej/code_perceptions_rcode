@@ -211,8 +211,6 @@ likert_100_plot_num <- function(df, item_col, title_text,
   
   plot_df$condition <- factor(plot_df$condition, 
                               levels = c("control", "experimental"))
-  plot_df <- plot_df %>% mutate(condition = factor(condition, 
-                                                   levels = cond_order))
   cols <- c("#D73027","#FC8D59","#E0E0E0","#4575B4","#313695")
   
   ggplot(plot_df, aes(x = condition, y = pct, fill = response)) +
